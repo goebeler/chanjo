@@ -8,3 +8,6 @@ members:
 Johannes Jendersie <johannes.jendersie@st.ovgu.de>,
 Anton Niadzelak <anton.niadzelka@st.ovgu.de>,
 Christian Nywelt <christian.nywelt@st.ovgu.de>
+
+To view Plan.graphml please use 
+http://www.yworks.com/de/products_yed_about.html
