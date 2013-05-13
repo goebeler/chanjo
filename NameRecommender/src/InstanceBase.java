@@ -1,9 +1,11 @@
 
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 
 /**
@@ -28,44 +30,57 @@ public class InstanceBase {
      * Filename for a text file containing data (one instance per line).
      * Each line should be: "Attr1, Attr2, ... , AttrN" where the
 	 * separation can also be done by white spaces or ';'.
+	 * @param _ExpectedNumAttributes The expected number of attributes per line.
+	 * Lines with an other number of entries are just ignored.
+	 * @param _NumAttributes The number of attributes loaded from file. This
+	 * can be different from the number of attributes per line. If
+	 * _NumAttributes is smaller the other attributes are ignored. Otherwise
+	 * the full line is loaded.
      */
-    public InstanceBase(String _DataFile) {
+    public InstanceBase(String _DataFile, int _ExpectedNumAttributes, int _NumAttributes) {
+    	m_Data = new ArrayList<String[]>();
+
         // load data from file
         try {
             BufferedReader file = new BufferedReader(new FileReader(_DataFile));
             String line;
-			// Unknown number of attributes
-			m_NumAttributes = -1;
+			// Unknown number of attributes per line
+            int NumAttributesPerLine = -1;
+			int numLines = 0;
             do {
                 line = file.readLine();
+                ++numLines;
                 if(line != null && !line.isEmpty()) {
                     // The current line contains some data.
 					// Parse it as somehow separated token list
-					String[] tokens = line.split( "[;|,]\\s*" );
+					String[] tokens = line.split( "[;|,\\t*]\\s*" );
 					
 					// This is the first data found
-					if( m_NumAttributes == -1 )
-						m_NumAttributes = tokens.length;
-					if( m_NumAttributes != tokens.length )
+					if( NumAttributesPerLine == -1 ) {
+						NumAttributesPerLine = tokens.length;
+						m_NumAttributes = Math.min(_NumAttributes, NumAttributesPerLine);
+					}
+					if( NumAttributesPerLine != tokens.length )
 					{
 						// This token has an other length than the first one
 						// which is not allowed.
 						System.out.println(
-								"Not every line contains the same number of tokens (expected " + m_NumAttributes
-								+ " found " + tokens.length + ")"
+								"Not every line contains the same number of tokens (expected " + NumAttributesPerLine
+								+ " found " + tokens.length + " in line " + numLines + ")"
 						);
 					} else
-						m_Data.add(tokens);
+						m_Data.add(Arrays.copyOfRange(tokens, 0, m_NumAttributes));
                 }
             } while(line != null);
             file.close();
+            
+            // Debug output
+            System.out.println("\nLoaded data base:\n#INSTANCES: " + getNumInstances());
+            System.out.println("#ATTRIBUTES: " + getNumAttributes());
         } catch (IOException ex) {
         	System.out.println(ex.getMessage());
+        	System.out.println("Absolute path is: " + new File(".").getAbsolutePath());
         }
-        
-        // Debug output
-        System.out.println("Loaded data base.\n\n#INSTANCES: " + getNumInstances());
-        System.out.println("Loaded data base.\n\n#ATTRIBUTES: " + getNumAttributes());
     }
     
     /**
@@ -124,4 +139,7 @@ public class InstanceBase {
         return result;
     }
 
+	public String getDatum(int _InstanceIdx, int _AttributeIdx) {
+		return m_Data.get(_InstanceIdx)[_AttributeIdx];
+	}
 }
