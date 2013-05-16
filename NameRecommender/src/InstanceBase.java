@@ -6,6 +6,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
+import java.util.HashMap;
 
 
 /**
@@ -21,6 +23,19 @@ import java.util.Arrays;
 public class InstanceBase {
 	private int m_NumAttributes;
     private ArrayList<String[]> m_Data;
+    private int[] m_NumEntriesPerAttribute;
+    
+    /**
+     * A copy of the data where each attribute is mapped to some integers.
+     *   - the same integer means the same original string.
+     *   - the integers are packed [0,n] where n is the number of different
+     *     entries of the respective attribute.
+     *     
+     * The advantages of this dual representation:
+     *   - comparisons with integers are much faster
+     *   - the values can be used as array indices.
+     */
+    private ArrayList<int[]> m_MappedData;
     
     public final int getNumAttributes()         {return m_NumAttributes;}
     public final int getNumInstances()          {return m_Data.size();}
@@ -73,6 +88,8 @@ public class InstanceBase {
                 }
             } while(line != null);
             file.close();
+            
+            CreateDualRepresentaion();
             
             // Debug output
             System.out.println("\nLoaded data base:\n#INSTANCES: " + getNumInstances());
@@ -141,5 +158,44 @@ public class InstanceBase {
 
 	public String getDatum(int _InstanceIdx, int _AttributeIdx) {
 		return m_Data.get(_InstanceIdx)[_AttributeIdx];
+	}
+	
+	public int getNumUniqueEntries( int _AttributeIdx ) {
+		return m_NumEntriesPerAttribute[_AttributeIdx];
+	}
+	
+	public Iterator<String[]> getIterator() {
+		return m_Data.iterator();
+	}
+	
+	public Iterator<int[]> getMappedIterator() {
+		return m_MappedData.iterator();
+	}
+	
+	
+	private void CreateDualRepresentaion() {
+		m_NumEntriesPerAttribute = new int[m_NumAttributes];
+		m_MappedData = new ArrayList<int[]>();
+		// Use hashmaps to find out if the element was seen before and if yes
+		// which index it has.
+		HashMap<String,Integer>[] map = new HashMap[m_NumAttributes];
+		for(int a=0; a<m_NumAttributes; ++a)
+			map[a] = new HashMap<String,Integer>();
+		
+		for( String[] it : m_Data )
+		{
+			int[] newDatum = new int[m_NumAttributes];
+			for( int a=0; a<m_NumAttributes; ++a)
+			{
+				Integer i = map[a].get(it[a]);
+				if( i==null ) {
+					map[a].put(it[a], new Integer(m_NumEntriesPerAttribute[a]));
+					++m_NumEntriesPerAttribute[a];
+				} else {
+					newDatum[a] = i;
+				}
+			}
+			m_MappedData.add(newDatum);
+		}
 	}
 }

@@ -3,10 +3,11 @@ import java.util.TreeSet;
 
 public class Evaluator {
 
-	public Recommender train(InstanceBase userData, InstanceBase[] itemSimilarity) {
-		extractUniqueLists(userData, itemSimilarity);
+	public Recommender train(InstanceBase _userData, InstanceBase[] _itemSimilarity) {
+		//extractUniqueLists(userData, itemSimilarity);
 		
-		return new Recommender();
+		ParameterSet parameters = new ParameterSet();
+		return new Recommender(_userData, null, parameters);
 	}
 	
 	/**
@@ -16,7 +17,7 @@ public class Evaluator {
 	 * @param userData The user activity data scanned for users and items.  
 	 * @param itemSimilarity Further item list scanned for more items.
 	 */
-	private void extractUniqueLists(InstanceBase userData, InstanceBase[] itemSimilarity) {
+/*	private void extractUniqueLists(InstanceBase userData, InstanceBase[] itemSimilarity) {
 		TreeSet<String> userSet = new TreeSet<String>();
 		TreeSet<String> itemSet = new TreeSet<String>();
 		// Scan training set for names and users.
@@ -32,13 +33,13 @@ public class Evaluator {
 			for(int i=0; i<itemSimilarity[j].getNumInstances(); i+=101) {
 				itemSet.add( itemSimilarity[j].getDatum(i, 2).toLowerCase() );
 			}
-		}*/
+		}* /
 		
-		userList = (String[])userSet.toArray(new String[userSet.size()]);
-		nameList = (String[])itemSet.toArray(new String[itemSet.size()]);
-		System.out.println("\nIdentified " + userList.length + " unique users.");
-		System.out.println("Identified " + nameList.length + " unique items.");
-	}
+		m_UserList = (String[])userSet.toArray(new String[userSet.size()]);
+		m_NameList = (String[])itemSet.toArray(new String[itemSet.size()]);
+		System.out.println("\nIdentified " + m_UserList.length + " unique users.");
+		System.out.println("Identified " + m_NameList.length + " unique items.");
+	}*/
 	
 	
 	/**
@@ -47,12 +48,12 @@ public class Evaluator {
 	 * The userList contains all unique user ids which can be accessed by there
 	 * indices afterwards.
 	 */
-	private String[] userList;
+	//private String[] m_UserList;
 
 	/**
 	 * Derived Data
 	 * 
 	 * A list of unique names.
 	 */
-	private String[] nameList;
+	//private String[] m_NameList;
 }
