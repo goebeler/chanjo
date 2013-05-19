@@ -30,7 +30,7 @@ public class Program {
 	 * Afterward any number of item similarity files can follow.
 	 */
 	private static void loadData(String[] files) {
-		// Load without timestamp
+		// Load without time stamp
 		userData = new InstanceBase(files[0], 4, 3);
 		
 		// Load only the two names and there similarity -> 3 attributes
