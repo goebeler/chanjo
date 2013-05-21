@@ -190,6 +190,7 @@ public class InstanceBase {
 				Integer i = map[a].get(it[a]);
 				if( i==null ) {
 					map[a].put(it[a], new Integer(m_NumEntriesPerAttribute[a]));
+					newDatum[a] = m_NumEntriesPerAttribute[a];
 					++m_NumEntriesPerAttribute[a];
 				} else {
 					newDatum[a] = i;
