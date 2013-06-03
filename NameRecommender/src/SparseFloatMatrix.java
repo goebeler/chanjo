@@ -60,6 +60,10 @@ public class SparseFloatMatrix {
 		return m_NumColumns;
 	}
 	
+	public int getNumEntriesInRow( int _row ) {
+		return m_Rows[_row].size(); 
+	}
+	
 	
 	/**
 	 * Binary search for a matrix-indexed element.
