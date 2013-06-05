@@ -5,7 +5,7 @@ public class Recommender {
 	
 	// Parameters to tune the algorithm
 	int MAX_RANK = 12;	// The rank how many weights should be used per item.
-			 			// 	Using a larger number than 20 has nearly no effect on the quality.
+			 			// 	Using a larger number should always increse the quality of the outcome.
 	
 	int ITERATRIONS = 15;	// Number of iterations - above 20 the quality is not increased that much.
 	float GAMMA = 0.002f;
@@ -14,7 +14,7 @@ public class Recommender {
 	private SparseFloatMatrix m_WeightTable;
 	private FloatVector m_X[];	// characterize items (2D array: #items * FloatVector(MAX_RANK))
 	private FloatVector m_Y[];	// characterize users based on the items they rated (2D array: #items * FloatVector(MAX_RANK))
-//	private FloatVector m_Q[];	// Is the item's influence positive or negative (array: #items). Using m_Q = m_X enforces symmetric weights (see page 177) -> left out 
+	private FloatVector m_Q[];	// Is the item's influence positive or negative (array: #items). Using m_Q = m_X enforces symmetric weights (see page 177) -> left out 
 	float m_AverageRating;		// The average rating over the whole table
 	private float m_Bu[];		// Observed deviations of user u from the average
 	private float m_Bi[];		// Observed deviations of item i from the average
@@ -44,6 +44,7 @@ public class Recommender {
 		}
 		
 		m_AverageRating /= numItems*numUsers;
+		learnFactorizedNeighborhoodModel();
 	}
 	
 	
@@ -74,6 +75,7 @@ public class Recommender {
 			// TODO: fill in non zeros
 			m_X[i] = new FloatVector(MAX_RANK);
 			m_Y[i] = new FloatVector(MAX_RANK);
+			m_Q[i] = new FloatVector(MAX_RANK);
 		}
 		
 		m_Bu = new float[m_WeightTable.getNumRows()];
@@ -94,17 +96,36 @@ public class Recommender {
 		initializeItemAttributes();
 		for( int i=0; i<ITERATRIONS; ++i ) {
 			for( int u=0; u<m_WeightTable.getNumRows(); ++u ) {
-				float sum = 0.0f;				
-				float ratedItemsWeight = (float)(1.0/Math.sqrt(m_WeightTable.getNumEntriesInRow(u)));	// This is |R(u)|^-0.5 in the document
+				FloatVector sum = new FloatVector(MAX_RANK);				
+				float norm = (float)(1.0/Math.sqrt(m_WeightTable.getNumEntriesInRow(u)));	// This is |R(u)|^-0.5 in the document
 				// Compute |R(u)|^-0.5 SUM j€R(u) [(r_uj-b_uj)*x_j+y_j]
 				FloatVector p = new FloatVector(MAX_RANK);
 				for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(u); it.hasNext(); ) {
-					int j = it.next().index;
-					float r_uj = m_WeightTable.get(u, j);
-					float b_uj = computeBaselinePredictor(u, j);
-					p.add( FloatVector.add( FloatVector.mul(r_uj-b_uj, m_X[j]), m_Y[j] ) );
+					SparseFloatMatrix.IndexValuePair entry = it.next();	// entry.index==j, entry.value==r_uj
+					float b_uj = computeBaselinePredictor(u, entry.index);
+					p.add( FloatVector.mad(entry.value-b_uj, m_X[entry.index], m_Y[entry.index] ) );
 				}
-				p.mul(ratedItemsWeight);
+				p.mul(norm);
+				
+				for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(u); it.hasNext(); ) {
+					SparseFloatMatrix.IndexValuePair entry = it.next();
+					int j = entry.index;
+					float rh_ui = computeBaselinePredictor(u, j) + m_Q[j].dot(p);
+					float e_ui = entry.value - rh_ui;
+					// Accumulate information for gradient descent steps on m_X, m_Y
+					sum.add( FloatVector.mul(e_ui, m_Q[j]) );
+					// Perform gradient steps on m_Q, b_u and b_i
+					m_Q[j].add( FloatVector.mad(GAMMA*e_ui, p, FloatVector.mul(-GAMMA*LAMBDA, m_Q[j])) );
+					m_Bu[u] += GAMMA * (e_ui - LAMBDA * m_Bu[u]);
+					m_Bi[j] += GAMMA * (e_ui - LAMBDA * m_Bi[j]);
+				}
+				
+				for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(u); it.hasNext(); ) {
+					SparseFloatMatrix.IndexValuePair entry = it.next();
+					int j = entry.index;
+					m_X[j].add( FloatVector.mad(GAMMA*norm*(entry.value-computeBaselinePredictor(u, j)), sum, FloatVector.mul(-GAMMA*LAMBDA, m_X[j])) );
+					m_Y[j].add( FloatVector.mad(GAMMA*norm, sum, FloatVector.mul(-GAMMA*LAMBDA, m_Y[j])) );
+				}				
 			}
 		}
 	}

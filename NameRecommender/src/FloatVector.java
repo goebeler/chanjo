@@ -68,7 +68,17 @@ public class FloatVector {
 			result.m_Rows[i] = _a.m_Rows[i] + _b.m_Rows[i];
 		return result;
 	}
+
 	
+	static public FloatVector sub( FloatVector _a, FloatVector _b ) {
+		if(_a.length() != _b.length()) throw new IllegalArgumentException();
+		
+		FloatVector result = new FloatVector(_a.length());
+		for( int i=0; i<_a.length(); ++i )
+			result.m_Rows[i] = _a.m_Rows[i] - _b.m_Rows[i];
+		return result;
+	}
+
 	/**
 	 * Multiplication with a scalar
 	 * @param _s The scalar value.
@@ -82,6 +92,25 @@ public class FloatVector {
 		FloatVector result = new FloatVector(_v.length());
 		for( int i=0; i<_v.length(); ++i )
 			result.m_Rows[i] = _v.m_Rows[i]*_s;
+		return result;
+	}
+	
+	/**
+	 * Computes a (scalar)multiply+(vector)add operation in on step.
+	 * 
+	 * This is much more optimal because only one allocation is required
+	 * and both operations are computed inside the same loop.
+	 * @param _s
+	 * @param _a
+	 * @param _b
+	 * @return s * a + b
+	 */
+	static public FloatVector mad( float _s, FloatVector _a, FloatVector _b ) {
+		if(_a.length() != _b.length()) throw new IllegalArgumentException();
+		
+		FloatVector result = new FloatVector(_a.length());
+		for( int i=0; i<_a.length(); ++i )
+			result.m_Rows[i] = _a.m_Rows[i]*_s + _b.m_Rows[i];
 		return result;
 	}
 	
