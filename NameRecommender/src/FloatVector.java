@@ -30,10 +30,19 @@ public class FloatVector {
 		return m_Rows[_row];
 	}
 	
+	/**
+	 * Fast set without a check of the index
+	 * @param _row Index of the row (which is a single float value).
+	 * @param _value The value to be set at the specified position.
+	 */
+	public void set( int _row, float _value ) {
+		m_Rows[_row] = _value;
+	}
+	
 	
 	/**
 	 * Adds a vector to the current one by changing its content. This method
-	 * does not create a new copy for performance reasons.
+	 * does not create a new copy for performance reasons (equal to a +=).
 	 * 
 	 * @param _b The other vector
 	 */
@@ -45,11 +54,44 @@ public class FloatVector {
 	}
 	
 	/**
+	 * Adds two vectors comonentwise. This method
+	 * does create a new copy (equal to a +).
+	 * 
+	 * @param _a The first vector
+	 * @param _b The second vector
+	 */
+	static public FloatVector add( FloatVector _a, FloatVector _b ) {
+		if(_a.length() != _b.length()) throw new IllegalArgumentException();
+		
+		FloatVector result = new FloatVector(_a.length());
+		for( int i=0; i<_a.length(); ++i )
+			result.m_Rows[i] = _a.m_Rows[i] + _b.m_Rows[i];
+		return result;
+	}
+	
+	/**
 	 * Multiplication with a scalar
 	 * @param _s The scalar value.
 	 */
 	public void mul( float _s ) {
 		for( int i=0; i<length(); ++i )
 			m_Rows[i] *= _s;
+	}
+	
+	static public FloatVector mul( float _s, FloatVector _v ) {
+		FloatVector result = new FloatVector(_v.length());
+		for( int i=0; i<_v.length(); ++i )
+			result.m_Rows[i] = _v.m_Rows[i]*_s;
+		return result;
+	}
+	
+	
+	public float dot( FloatVector _b ) {
+		if(length() != _b.length()) throw new IllegalArgumentException();
+		
+		float result = 0.0f;
+		for( int i=0; i<length(); ++i )
+			result += m_Rows[i] * _b.m_Rows[i];
+		return result;
 	}
 }
