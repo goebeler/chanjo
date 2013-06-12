@@ -53,8 +53,15 @@ public class FloatVector {
 			m_Rows[i] += _b.get(i);
 	}
 	
+	public void sub( FloatVector _b ) {
+		if(_b.length() != length()) throw new IllegalArgumentException();
+		
+		for( int i=0; i<length(); ++i )
+			m_Rows[i] -= _b.get(i);
+	}
+
 	/**
-	 * Adds two vectors comonentwise. This method
+	 * Adds two vectors component wise. This method
 	 * does create a new copy (equal to a +).
 	 * 
 	 * @param _a The first vector
@@ -79,6 +86,7 @@ public class FloatVector {
 		return result;
 	}
 
+	
 	/**
 	 * Multiplication with a scalar
 	 * @param _s The scalar value.
@@ -123,4 +131,5 @@ public class FloatVector {
 			result += m_Rows[i] * _b.m_Rows[i];
 		return result;
 	}
+
 }
