@@ -5,7 +5,7 @@ public class Program {
 	 * @param args The program arguments are the filenames of the data on which
 	 * 	the name recommendation should be done.
 	 * 
-	 * The first has to be of the used activity data.
+	 * The first has to be of the user activity data.
 	 * 
 	 * Afterwards an arbitrary number of files with the item similarity can
 	 * be injected.
@@ -13,7 +13,7 @@ public class Program {
 	public static void main(String[] args) {
 		
 		if( args.length < 1 ) {
-			System.out.println("At least the used activity data has to be given.");
+			System.out.println("At least the user activity data has to be given.");
 			return;
 		}
 		

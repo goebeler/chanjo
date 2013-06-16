@@ -5,7 +5,7 @@ public class Recommender {
 	
 	// Parameters to tune the algorithm
 	int MAX_RANK = 12;			// The rank how many weights should be used per item.
-			 					// 	Using a larger number should always increse the quality of the outcome.
+			 					// 	Using a larger number should always increase the quality of the outcome.
 	
 	int ITERATRIONS = 15;		// Number of iterations - above 20 the quality is not increased that much.
 	float GAMMA = 0.002f;
@@ -18,7 +18,7 @@ public class Recommender {
 	private FloatVector m_X[];	// characterize items (2D array: #items * FloatVector(MAX_RANK))
 	private FloatVector m_Y[];	// characterize users based on the items they rated (2D array: #items * FloatVector(MAX_RANK))
 	private FloatVector m_Q[];	// Is the item's influence positive or negative (array: #items). Using m_Q = m_X enforces symmetric weights (see page 177) -> left out
-	private FloatVector m_P[];	// User faactors of the fallback method (array: #users)
+	private FloatVector m_P[];	// User factors of the fallback method (array: #users)
 	float m_AverageRating;		// The average rating over the whole table
 	private float m_Bu[];		// Observed deviations of user u from the average
 	private float m_Bi[];		// Observed deviations of item i from the average
