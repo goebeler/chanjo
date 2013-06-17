@@ -125,7 +125,7 @@ public class Evaluator {
 
 	/**
 	 * Cross validates input data. Creates recommender for each fold of train data. 
-	 * Calculates and returns cumulative RMSE error of the model
+	 * Calculates and returns cumulative RMSE error of the model.
 	 * @param _userData The database which contains all actions
 	 * @param _numberOfFolds number of folds for cross validation
 	 * @return rmse error of the model
@@ -136,10 +136,10 @@ public class Evaluator {
 		float rmse = 0;
 		int numItems = _userData.getNumUniqueEntries(2);
 		int numUsers = _userData.getNumUniqueEntries(0);
-		SparseFloatMatrix ratingsTest = new SparseFloatMatrix( numUsers, numItems );
-		SparseFloatMatrix ratingsTrain = new SparseFloatMatrix( numUsers, numItems );
 		
 		for(int fold = 0; fold < _numberOfFolds; fold++) {
+			SparseFloatMatrix ratingsTest = new SparseFloatMatrix( numUsers, numItems );
+			SparseFloatMatrix ratingsTrain = new SparseFloatMatrix( numUsers, numItems );
 			// Iterate over the training data and increase the entries for the users
 			// actions.
 			int i=0;
