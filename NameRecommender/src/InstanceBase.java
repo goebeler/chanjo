@@ -37,6 +37,16 @@ public class InstanceBase {
      */
     private ArrayList<int[]> m_MappedData;
     
+    /**
+     * One map for each attribute containing the original strings.
+     * 
+     * The elements are sorted by there unique index. So each item
+     * appears only once.
+     * 
+     * The map is created from createDualRepresentation()
+     */
+    private ArrayList<String>[] m_Maps;
+    
     public final int getNumAttributes()         {return m_NumAttributes;}
     public final int getNumInstances()          {return m_Data.size();}
 
@@ -155,10 +165,6 @@ public class InstanceBase {
         }
         return result;
     }
-
-	public String getDatum(int _InstanceIdx, int _AttributeIdx) {
-		return m_Data.get(_InstanceIdx)[_AttributeIdx];
-	}
 	
 	public int getNumUniqueEntries( int _AttributeIdx ) {
 		return m_NumEntriesPerAttribute[_AttributeIdx];
@@ -172,15 +178,22 @@ public class InstanceBase {
 		return m_MappedData.iterator();
 	}
 	
+	public String getString( int _AttributeIdx, int _MappedIndex ) {
+		return m_Maps[_AttributeIdx].get(_MappedIndex);
+	}
+	
 	
 	private void CreateDualRepresentaion() {
 		m_NumEntriesPerAttribute = new int[m_NumAttributes];
 		m_MappedData = new ArrayList<int[]>();
-		// Use hashmaps to find out if the element was seen before and if yes
+		m_Maps = new ArrayList[m_NumAttributes];
+		// Use hash maps to find out if the element was seen before and if yes
 		// which index it has.
 		HashMap<String,Integer>[] map = new HashMap[m_NumAttributes];
-		for(int a=0; a<m_NumAttributes; ++a)
+		for(int a=0; a<m_NumAttributes; ++a) {
 			map[a] = new HashMap<String,Integer>();
+			m_Maps[a] = new ArrayList<String>();
+		}
 		
 		for( String[] it : m_Data )
 		{
@@ -191,6 +204,7 @@ public class InstanceBase {
 				if( i==null ) {
 					map[a].put(it[a], new Integer(m_NumEntriesPerAttribute[a]));
 					newDatum[a] = m_NumEntriesPerAttribute[a];
+					m_Maps[a].add(it[a]);
 					++m_NumEntriesPerAttribute[a];
 				} else {
 					newDatum[a] = i;
