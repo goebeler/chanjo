@@ -18,7 +18,7 @@ public class Recommender {
 	private FloatVector m_X[];	// characterize items (2D array: #items * FloatVector(MAX_RANK))
 	private FloatVector m_Y[];	// characterize users based on the items they rated (2D array: #items * FloatVector(MAX_RANK))
 	private FloatVector m_Q[];	// Is the item's influence positive or negative (array: #items). Using m_Q = m_X enforces symmetric weights (see page 177) -> left out
-	private FloatVector m_P[];	// User factors of the fallback method (array: #users)
+	private FloatVector m_P[];	// User factors of the fall back method (array: #users)
 	float m_AverageRating;		// The average rating over the whole table
 	private float m_Bu[];		// Observed deviations of user u from the average
 	private float m_Bi[];		// Observed deviations of item i from the average
@@ -30,30 +30,27 @@ public class Recommender {
 	 * 
 	 * TODO: use a mask to disable the usage of all userData (cross validation)
 	 */
-	public Recommender( InstanceBase _userData, String[] _itemList, ParameterSet _Param ) {
-		int numItems = _userData.getNumUniqueEntries(2);
-		int numUsers = _userData.getNumUniqueEntries(0);
-		m_WeightTable = new SparseFloatMatrix( numUsers, numItems );
+	public Recommender( SparseFloatMatrix _ratings ) {
+		m_WeightTable = _ratings;
 		
 		m_AverageRating = 0.0f;
 		
 		// Iterate over the training data and increase the entries for the users
 		// actions.
-		for(Iterator<int[]> it = _userData.getMappedIterator(); it.hasNext(); ) {
-			int[] line = it.next();
-			float newValue = _Param.ActionWeight[line[1]];
-			m_AverageRating += newValue;
-			newValue += m_WeightTable.get(line[0], line[2]);
-			m_WeightTable.set(line[0], line[2], newValue);
+		for( int i=0; i<m_WeightTable.getNumRows(); ++i ) {
+			for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(i); it.hasNext(); ) {
+				SparseFloatMatrix.IndexValuePair e0 = it.next();
+				m_AverageRating += e0.value;
+			}
 		}
 		
-		m_AverageRating /= numItems*numUsers;
+		m_AverageRating /= _ratings.getNumColumns()*_ratings.getNumRows();
 		learnFactorizedNeighborhoodModel();
 	}
 	
 	
 	public String[] getItemListForUser(int index) {
-		for( int i=0; i<m_WeightTable.getNumRows(); ++i) {
+		for( int i=0; i<m_WeightTable.getNumRows(); ++i ) {
 			int iLastCol = -1;
 			// Temporary test code
 			for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(i); it.hasNext(); ) {
