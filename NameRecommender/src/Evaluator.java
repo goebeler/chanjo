@@ -3,6 +3,8 @@ import java.util.TreeSet;
 
 
 public class Evaluator {
+	
+	
 
 	public Recommender train(InstanceBase _userData, InstanceBase[] _itemSimilarity) {
 		ParameterSet parameters = new ParameterSet();
@@ -120,7 +122,48 @@ public class Evaluator {
 		
 		return ratrings;
 	}
-	
+
+	/**
+	 * Cross validates input data. Creates recommender for each fold of train data. 
+	 * Calculates and returns cumulative RMSE error of the model
+	 * @param _userData The database which contains all actions
+	 * @param _numberOfFolds number of folds for cross validation
+	 * @return rmse error of the model
+	 */
+	public float crossValidate(InstanceBase _userData, int _numberOfFolds, ParameterSet _param) {
+		
+		int[] folds = kfold(_userData.getNumInstances(), _numberOfFolds);
+		float rmse = 0;
+		int numItems = _userData.getNumUniqueEntries(2);
+		int numUsers = _userData.getNumUniqueEntries(0);
+		SparseFloatMatrix ratingsTest = new SparseFloatMatrix( numUsers, numItems );
+		SparseFloatMatrix ratingsTrain = new SparseFloatMatrix( numUsers, numItems );
+		
+		for(int fold = 0; fold < _numberOfFolds; fold++) {
+			// Iterate over the training data and increase the entries for the users
+			// actions.
+			int i=0;
+			for(Iterator<int[]> it = _userData.getMappedIterator(); it.hasNext(); ) {
+				int[] line = it.next();
+				if( folds[i++] == fold) {
+					float newValue = _param.ActionWeight[line[1]];
+					newValue += ratingsTest.get(line[0], line[2]);
+					ratingsTest.set(line[0], line[2], newValue);
+				}
+				else{
+					float newValue = _param.ActionWeight[line[1]];
+					newValue += ratingsTrain.get(line[0], line[2]);
+					ratingsTrain.set(line[0], line[2], newValue);
+				}
+			}
+			
+			Recommender recommender = new Recommender(ratingsTrain);
+			rmse += rmseCrossValidation(recommender, ratingsTest);
+		}
+		
+		
+		return (float) Math.sqrt(rmse/_userData.getNumInstances());
+	}
 	
 	/**
 	 * Derived Data
