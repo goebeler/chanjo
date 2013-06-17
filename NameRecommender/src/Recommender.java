@@ -265,29 +265,14 @@ public class Recommender {
 		int R_U = 0;
 		for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(_user); it.hasNext(); ) {
 			SparseFloatMatrix.IndexValuePair entry = it.next();
-			latentFactorPart+= (entry.value - computeBaselinePredictor( _user, entry.index ))
-					*dotProduct(m_Q[entry.index], m_X[entry.index]) 
-					+ dotProduct(m_Q[entry.index], m_Y[entry.index]);
+			latentFactorPart += (entry.value - computeBaselinePredictor( _user, entry.index ))
+					* m_Q[entry.index].dot(m_X[entry.index]) 
+					+ m_Q[entry.index].dot(m_Y[entry.index]);
 			R_U++;
 		}	
 		
 		latentFactorPart /= Math.sqrt(R_U);
 		
 		return m_AverageRating + m_Bu[_user] + m_Bi[_item] + latentFactorPart;
-	}
-	
-	/**
-	 * Compute dot product between v1^T and v2.
-	 * @param v1 first vector.
-	 * @param v2 second vector.
-	 * @return dot product
-	 */
-	
-	public float dotProduct(FloatVector v1, FloatVector v2) {
-		float dp = 0;
-		for(int i = 0; i < v1.length(); i++ ) {
-			dp += v1.get(i) + v2.get(i); 
-		}
-		return dp;
 	}
 }
