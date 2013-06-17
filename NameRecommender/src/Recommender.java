@@ -252,4 +252,42 @@ public class Recommender {
 			}
 		}
 	}
+	
+	
+	/**
+	 * Compute recommendation for a given user item pair.
+	 * @param _user The user which's item are of interest.
+	 * @param _item The item of interest.
+	 * @return rating that presumably the user will give to the item.
+	 */
+	public float getPrediction(int _user, int _item) {
+		float latentFactorPart = 0;
+		int R_U = 0;
+		for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(_user); it.hasNext(); ) {
+			SparseFloatMatrix.IndexValuePair entry = it.next();
+			latentFactorPart+= (entry.value - computeBaselinePredictor( _user, entry.index ))
+					*dotProduct(m_Q[entry.index], m_X[entry.index]) 
+					+ dotProduct(m_Q[entry.index], m_Y[entry.index]);
+			R_U++;
+		}	
+		
+		latentFactorPart /= Math.sqrt(R_U);
+		
+		return m_AverageRating + m_Bu[_user] + m_Bi[_item] + latentFactorPart;
+	}
+	
+	/**
+	 * Compute dot product between v1^T and v2.
+	 * @param v1 first vector.
+	 * @param v2 second vector.
+	 * @return dot product
+	 */
+	
+	public float dotProduct(FloatVector v1, FloatVector v2) {
+		float dp = 0;
+		for(int i = 0; i < v1.length(); i++ ) {
+			dp += v1.get(i) + v2.get(i); 
+		}
+		return dp;
+	}
 }
