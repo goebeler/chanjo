@@ -130,7 +130,9 @@ public class Evaluator {
 	 * @param _numberOfFolds number of folds for cross validation
 	 * @return rmse error of the model
 	 */
-	public float crossValidate(InstanceBase _userData, int _numberOfFolds, ParameterSet _param) {
+	public float crossValidate(InstanceBase _userData, int _numberOfFolds) {
+		
+		ParameterSet parameters = new ParameterSet();
 		
 		int[] folds = kfold(_userData.getNumInstances(), _numberOfFolds);
 		float rmse = 0;
@@ -146,12 +148,12 @@ public class Evaluator {
 			for(Iterator<int[]> it = _userData.getMappedIterator(); it.hasNext(); ) {
 				int[] line = it.next();
 				if( folds[i++] == fold) {
-					float newValue = _param.ActionWeight[line[1]];
+					float newValue = parameters.ActionWeight[line[1]];
 					newValue += ratingsTest.get(line[0], line[2]);
 					ratingsTest.set(line[0], line[2], newValue);
 				}
 				else{
-					float newValue = _param.ActionWeight[line[1]];
+					float newValue = parameters.ActionWeight[line[1]];
 					newValue += ratingsTrain.get(line[0], line[2]);
 					ratingsTrain.set(line[0], line[2], newValue);
 				}

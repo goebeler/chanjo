@@ -53,6 +53,17 @@ public class Program {
 		recommender = trainer.train( userData, itemData );
 	}
 	
+	/**
+	 * Cross validates recommendation model. 
+	 * Initialized a trained recommender for each fold. 
+	 * @param _numberOfFolds number of folds for cross validation
+	 * @return rmse error of the model 
+	 */
+	private static float crossValidate(int _numberOfFolds) {
+		Evaluator ev = new Evaluator();
+		return ev.crossValidate( userData, _numberOfFolds);
+	}
+	
 	
 	/**
 	 * This method uses the current recommender to create the recommendation
