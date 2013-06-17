@@ -12,6 +12,88 @@ public class Evaluator {
 	}
 	
 	/**
+	 * Calculates root mean squared error 
+	 * @param _rec recomendation model
+	 * @param _testMatrix test data
+	 * @return rmse
+	 */
+	public float RMSE(Recommender _rec, SparseFloatMatrix _testMatrix) {
+		float rmse = 0;
+		int n = 0;
+		for(int i = 0; i < _testMatrix.getNumRows(); i++) {
+			for(Iterator<SparseFloatMatrix.IndexValuePair> it = _testMatrix.getSkipIterator(i); it.hasNext(); ) {
+				SparseFloatMatrix.IndexValuePair entry = it.next();
+				 rmse += Math.pow(_rec.getPrediction(i, entry.index) - entry.value, 2);
+				 n++;
+			}	
+		}
+		
+		return (float) Math.sqrt(rmse / n);		
+	}
+	
+	/**
+	 * Calculates part of root mean squared error, that will be used for calculation of rmse for all folds. 
+	 * @param _rec recomendation model
+	 * @param _testMatrix test data
+	 * @return part of rmse
+	 */
+	public float rmseCrossValidation(Recommender _rec, SparseFloatMatrix _testMatrix) {
+		float rmse = 0;
+		for(int i = 0; i < _testMatrix.getNumRows(); i++) {
+			for(Iterator<SparseFloatMatrix.IndexValuePair> it = _testMatrix.getSkipIterator(i); it.hasNext(); ) {
+				SparseFloatMatrix.IndexValuePair entry = it.next();
+				 rmse += Math.pow(_rec.getPrediction(i, entry.index) - entry.value, 2);
+			}	
+		}
+		
+		return rmse;		
+	}
+	
+	/**
+	 * Shuffles an array 
+	 * @param _array array that will be shuffled
+	 * @param _size number of elements in the set to cross validate
+	 * @return randomly shuffled array
+	 */
+	private int[] shuffleArray(int[] _array, int _size)
+	{
+		int[] newArray = _array;
+	    int n = _size;
+	    while (n > 1)
+	    {
+	        // 0 <= k < n
+	        int k = (int) (Math.random() * n);
+
+	        // n is now the last pertinent index
+	        n--;
+
+	        // swap array[n] with array[k]
+	        int temp = newArray[n];
+	        newArray[n] = newArray[k];
+	        newArray[k] = temp;
+	    }
+	    return newArray;
+	}
+
+	/**
+	 * Creates indices for cross validation folds 
+	 * @param _size number of elements in the set to cross validate
+	 * @param _k number of folds
+	 * @return an array with randomly distributed indices 
+	 */
+	private int[] kfold(int _size, int _k)
+	{
+		int[] resArray = new int[_size];
+	    double inc = (double)_k/_size;
+
+	    for (int i = 0; i < _size; i++) {
+	        resArray[i] = (int) (Math.ceil((i+0.9)*inc) - 1);
+	    }	    
+	    
+	    return shuffleArray(resArray,_size);
+	}
+	
+	/**
 	 * Fill a sparse matrix with all allowed actions from the database.
 	 * @param _userData The database which contains all actions
 	 * @param _filterActions An array with the same number of entries as in the
