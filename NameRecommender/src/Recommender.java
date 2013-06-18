@@ -48,19 +48,27 @@ public class Recommender {
 		learnFactorizedNeighborhoodModel();
 	}
 	
-	
-	public String[] getItemListForUser(int index) {
-		for( int i=0; i<m_WeightTable.getNumRows(); ++i ) {
-			int iLastCol = -1;
-			// Temporary test code
-			for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(i); it.hasNext(); ) {
-				SparseFloatMatrix.IndexValuePair e0 = it.next();
-				if( iLastCol > e0.index )
-					System.out.println("Error in the matrix layout.");
-				iLastCol = e0.index;
-			}
+	/**
+	 * Computes a sorted list of recommendated items for the given user.
+	 * @param _user The user for which the recommendation list should be created.
+	 * @param _num Number of items to recommend.
+	 * @return An array with item IDs of length _num
+	 */
+	public int[] getItemListForUser(int _user, int _num) {
+		assert(_num <= m_WeightTable.getNumColumns());
+		// Compute recommendation values for each item (use index value pairs to sort indices after value)
+		SparseFloatMatrix.IndexValuePair[] items = new SparseFloatMatrix.IndexValuePair[m_WeightTable.getNumColumns()]; 
+		for( int i=0; i<m_WeightTable.getNumColumns(); ++i ) {
+			items[i] = new SparseFloatMatrix.IndexValuePair(i,0.0f);
+			// Only use items the user had not interacted before.
+			if(m_WeightTable.get(_user, i) == 0.0f)
+				items[i].value = getPrediction(_user, i);
 		}
-		return null;
+		java.util.Arrays.sort(items);
+		int[] topItems = new int[_num];
+		for( int i=0; i<_num; ++i )
+			topItems[i] = items[i].index;
+		return topItems;
 	}
 	
 

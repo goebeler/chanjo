@@ -71,7 +71,7 @@ public class Program {
 	 */
 	private static void outputResults() {
 		System.out.println( "\n\nRESULTS:");
-		System.out.println(recommender.getItemListForUser(0));
+		System.out.println(recommender.getItemListForUser(0, 100));
 	}
 
 	private static Recommender recommender;

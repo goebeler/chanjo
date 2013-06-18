@@ -13,7 +13,7 @@ import java.util.NoSuchElementException;
  */
 public class SparseFloatMatrix {
 	
-	public class IndexValuePair {
+	public static class IndexValuePair implements Comparable<IndexValuePair> {
 		public IndexValuePair( int _index, float _value ) {
 			index = _index;
 			value = _value; 
@@ -21,6 +21,11 @@ public class SparseFloatMatrix {
 
 		int index;
 		float value;
+		
+		@Override
+		public int compareTo(IndexValuePair arg0) {
+			return (int) Math.signum( value-arg0.value );
+		}
 	}
 	
 	// numRows Sorted linked lists
