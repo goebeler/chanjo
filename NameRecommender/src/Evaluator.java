@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.TreeSet;
 
@@ -9,6 +10,7 @@ public class Evaluator {
 	public Recommender train(InstanceBase _userData, InstanceBase[] _itemSimilarity) {
 		ParameterSet parameters = new ParameterSet();
 		boolean[] filter = new boolean[_userData.getNumInstances()];
+		Arrays.fill(filter, true);
 		SparseFloatMatrix ratrings = createRatingMatrix(_userData, filter, parameters);
 		return new Recommender(ratrings);
 	}

@@ -132,4 +132,8 @@ public class SparseFloatMatrix {
 	public Iterator<IndexValuePair> getSkipIterator( int _row ) {
 		return m_Rows[_row].iterator();
 	}
+	
+	public ArrayList<IndexValuePair> getRow( int _row ) {
+		return m_Rows[_row];
+	}
 }

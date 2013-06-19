@@ -1,3 +1,8 @@
+import java.util.Iterator;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+
 
 public class Program {
 
@@ -19,7 +24,8 @@ public class Program {
 		
 		loadData(args);
 		createRecommender();
-		outputResults();
+		if( testUsers != null )
+			outputResults();
 	}
 	
 	/**
@@ -33,8 +39,11 @@ public class Program {
 		// Load without time stamp
 		userData = new InstanceBase(files[0], 4, 3);
 		
+		if( files.length > 1 )
+			testUsers = new InstanceBase(files[1], 1, 1);
+		
 		// Load only the two names and there similarity -> 3 attributes
-		if( files.length > 1 ) {
+		if( files.length > 2 ) {
 			itemData = new InstanceBase[files.length-1];
 			for( int i=1; i<files.length; ++i )
 				itemData[i-1] = new InstanceBase(files[i], 6, 3);
@@ -70,11 +79,36 @@ public class Program {
 	 * lists. createRecommender must be called before!
 	 */
 	private static void outputResults() {
-		System.out.println( "\n\nRESULTS:");
-		System.out.println(recommender.getItemListForUser(0, 100));
+		// Create the file for the challenge
+		try {
+			FileWriter file;
+			file = new FileWriter("recommendations_for_test_users.txt");
+
+		
+			System.out.println( "\n\nCapturing results\n");
+			for(Iterator<int[]> it = testUsers.getMappedIterator(); it.hasNext(); ) {
+				int id = it.next()[0];
+				// Write user (original) id first
+				file.write(userData.getString(0, id));
+				int[] items = recommender.getItemListForUser(id, 20);
+				for( int i=0; i<20; ++i ) {
+					// Write names in a tab separated list
+					String name = userData.getString(2, items[i]);
+					file.write("\t" + name);
+		//			System.out.print(name + ", ");
+				}
+				file.write("\n");
+		//		System.out.println();
+			}
+			file.close();
+
+		} catch (IOException e) {
+			System.out.println("Could not write results to a local file.");
+		}
 	}
 
 	private static Recommender recommender;
 	private static InstanceBase userData;
+	private static InstanceBase testUsers;
 	private static InstanceBase[] itemData;
 }

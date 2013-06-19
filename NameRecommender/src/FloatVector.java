@@ -127,7 +127,8 @@ public class FloatVector {
 		if(length() != _b.length()) throw new IllegalArgumentException();
 		
 		float result = 0.0f;
-		for( int i=0; i<length(); ++i )
+		int len = length();
+		for( int i=0; i<len; ++i )
 			result += m_Rows[i] * _b.m_Rows[i];
 		return result;
 	}

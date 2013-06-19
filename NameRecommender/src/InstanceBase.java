@@ -38,14 +38,19 @@ public class InstanceBase {
     private ArrayList<int[]> m_MappedData;
     
     /**
-     * One map for each attribute containing the original strings.
+	 * A map from string to unique id for each attribute.
+     */
+	HashMap<String,Integer>[] m_Maps;
+
+	/**
+     * One map for each attribute containing the original strings (inverse of m_Maps).
      * 
      * The elements are sorted by there unique index. So each item
      * appears only once.
      * 
      * The map is created from createDualRepresentation()
      */
-    private ArrayList<String>[] m_Maps;
+    private ArrayList<String>[] m_InverseMaps;
     
     public final int getNumAttributes()         {return m_NumAttributes;}
     public final int getNumInstances()          {return m_Data.size();}
@@ -93,8 +98,12 @@ public class InstanceBase {
 								"Not every line contains the same number of tokens (expected " + NumAttributesPerLine
 								+ " found " + tokens.length + " in line " + numLines + ")"
 						);
-					} else
-						m_Data.add(Arrays.copyOfRange(tokens, 0, m_NumAttributes));
+					} else {
+						String[] newInstance = new String[m_NumAttributes];
+						for( int i=0; i<m_NumAttributes; ++i )
+							newInstance[i] = tokens[i].toLowerCase();
+						m_Data.add(newInstance);
+					}
                 }
             } while(line != null);
             file.close();
@@ -179,20 +188,24 @@ public class InstanceBase {
 	}
 	
 	public String getString( int _AttributeIdx, int _MappedIndex ) {
-		return m_Maps[_AttributeIdx].get(_MappedIndex);
+		return m_InverseMaps[_AttributeIdx].get(_MappedIndex);
+	}
+	
+	public int getMappedID( int _AttributeIdx, String _token ) {
+		return 0;
 	}
 	
 	
 	private void CreateDualRepresentaion() {
 		m_NumEntriesPerAttribute = new int[m_NumAttributes];
 		m_MappedData = new ArrayList<int[]>();
-		m_Maps = new ArrayList[m_NumAttributes];
+		m_InverseMaps = new ArrayList[m_NumAttributes];
 		// Use hash maps to find out if the element was seen before and if yes
 		// which index it has.
-		HashMap<String,Integer>[] map = new HashMap[m_NumAttributes];
+		m_Maps = new HashMap[m_NumAttributes];
 		for(int a=0; a<m_NumAttributes; ++a) {
-			map[a] = new HashMap<String,Integer>();
-			m_Maps[a] = new ArrayList<String>();
+			m_Maps[a] = new HashMap<String,Integer>();
+			m_InverseMaps[a] = new ArrayList<String>();
 		}
 		
 		for( String[] it : m_Data )
@@ -200,11 +213,11 @@ public class InstanceBase {
 			int[] newDatum = new int[m_NumAttributes];
 			for( int a=0; a<m_NumAttributes; ++a)
 			{
-				Integer i = map[a].get(it[a]);
+				Integer i = m_Maps[a].get(it[a]);
 				if( i==null ) {
-					map[a].put(it[a], new Integer(m_NumEntriesPerAttribute[a]));
+					m_Maps[a].put(it[a], new Integer(m_NumEntriesPerAttribute[a]));
 					newDatum[a] = m_NumEntriesPerAttribute[a];
-					m_Maps[a].add(it[a]);
+					m_InverseMaps[a].add(it[a]);
 					++m_NumEntriesPerAttribute[a];
 				} else {
 					newDatum[a] = i;

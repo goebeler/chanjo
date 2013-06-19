@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.Iterator;
 
 
@@ -23,28 +24,32 @@ public class Recommender {
 	private float m_Bu[];		// Observed deviations of user u from the average
 	private float m_Bi[];		// Observed deviations of item i from the average
 	
+	private int m_NumUsers;
+	private int m_NumItems;
+	
 	/**
 	 * Creates a new trained recommender.
 	 * @param _userData The training data.
 	 * @param _itemList A list of all available items.
 	 * 
-	 * TODO: use a mask to disable the usage of all userData (cross validation)
 	 */
 	public Recommender( SparseFloatMatrix _ratings ) {
 		m_WeightTable = _ratings;
+		m_NumUsers = _ratings.getNumRows();
+		m_NumItems = _ratings.getNumColumns();
 		
 		m_AverageRating = 0.0f;
 		
 		// Iterate over the training data and increase the entries for the users
 		// actions.
-		for( int i=0; i<m_WeightTable.getNumRows(); ++i ) {
+		for( int i=0; i<m_NumUsers; ++i ) {
 			for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(i); it.hasNext(); ) {
 				SparseFloatMatrix.IndexValuePair e0 = it.next();
 				m_AverageRating += e0.value;
 			}
 		}
 		
-		m_AverageRating /= _ratings.getNumColumns()*_ratings.getNumRows();
+		m_AverageRating /= m_NumItems*m_NumUsers;
 		learnFactorizedNeighborhoodModel();
 	}
 	
@@ -55,10 +60,10 @@ public class Recommender {
 	 * @return An array with item IDs of length _num
 	 */
 	public int[] getItemListForUser(int _user, int _num) {
-		assert(_num <= m_WeightTable.getNumColumns());
+		assert(_num <= m_NumItems);
 		// Compute recommendation values for each item (use index value pairs to sort indices after value)
 		SparseFloatMatrix.IndexValuePair[] items = new SparseFloatMatrix.IndexValuePair[m_WeightTable.getNumColumns()]; 
-		for( int i=0; i<m_WeightTable.getNumColumns(); ++i ) {
+		for( int i=0; i<m_NumItems; ++i ) {
 			items[i] = new SparseFloatMatrix.IndexValuePair(i,0.0f);
 			// Only use items the user had not interacted before.
 			if(m_WeightTable.get(_user, i) == 0.0f)
@@ -81,7 +86,7 @@ public class Recommender {
 	{
 		// count how often an item is rated by polling.
 		int ic = 0;
-		for( int i=0; i<m_WeightTable.getNumRows(); ++i )
+		for( int i=0; i<m_NumUsers; ++i )
 			if( m_WeightTable.get(i, _item) > 0.0f ) ++ic;
 		return Math.min(m_WeightTable.getNumEntriesInRow(_user), ic);
 	}
@@ -96,10 +101,10 @@ public class Recommender {
 	private float squaredError()
 	{
 		float res = 0;
-		for( int u=0; u<m_WeightTable.getNumRows(); ++u ) {
+		for( int u=0; u<m_NumUsers; ++u ) {
 			for( Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(u); it.hasNext(); ) {
-				SparseFloatMatrix.IndexValuePair e0 = it.next();
-				float ratingError = e0.value - m_P[u].dot(m_Q[e0.index]);
+				SparseFloatMatrix.IndexValuePair entry = it.next();
+				float ratingError = entry.value - m_P[u].dot(m_Q[entry.index]);
 				res += ratingError * ratingError;
 			}
 		}
@@ -114,19 +119,18 @@ public class Recommender {
 	private void computeNextFactor( int f )
 	{
 		// Compute residuals-portion not explained by previous factors.
-		SparseFloatMatrix ratingErrors = new SparseFloatMatrix(m_WeightTable.getNumRows(), m_WeightTable.getNumColumns());
+		SparseFloatMatrix ratingErrors = new SparseFloatMatrix(m_NumUsers, m_NumItems);
 		// For each known rating
-		for( int u=0; u<m_WeightTable.getNumRows(); ++u ) {
-			for( Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(u); it.hasNext(); ) {
-				SparseFloatMatrix.IndexValuePair e0 = it.next();
-				int i = e0.index;
+		for( int u=0; u<m_NumUsers; ++u ) {
+			for( SparseFloatMatrix.IndexValuePair entry : m_WeightTable.getRow(u) ) {
+				int i = entry.index;
 				// Dot product of P_i and Q_j with respect to the computed part
 				// only (which is easy, because everything else is 0.
-				float ratingError = e0.value - m_P[u].dot(m_Q[i]);
+				float ratingError = entry.value - m_P[u].dot(m_Q[i]);
 				// Shrinkage
 				float n_ui = support(u,i);
 				ratingError = n_ui*ratingError / (n_ui+ALPHA * f);
-				ratingErrors.set(u, i, e0.value);
+				ratingErrors.set(u, i, entry.value);
 			}
 		}
 		
@@ -136,21 +140,20 @@ public class Recommender {
 		float errNew = errOld;
 		while( errNew/errOld > 1-EPSILON ) {
 			// For each user
-			for( int u=0; u<m_WeightTable.getNumRows(); ++u ) {
+			for( int u=0; u<m_NumUsers; ++u ) {
 				float newFactorNum = 0;
 				float newFactorDen = 0.00000001f;
-				for( Iterator<SparseFloatMatrix.IndexValuePair> it = ratingErrors.getSkipIterator(u); it.hasNext(); ) {
-					SparseFloatMatrix.IndexValuePair e0 = it.next();
-					newFactorNum += e0.value * m_Q[e0.index].get(f);
-					newFactorDen += m_Q[e0.index].get(f) * m_Q[e0.index].get(f);
+				for( SparseFloatMatrix.IndexValuePair entry : m_WeightTable.getRow(u) ) {
+					newFactorNum += entry.value * m_Q[entry.index].get(f);
+					newFactorDen += m_Q[entry.index].get(f) * m_Q[entry.index].get(f);
 				}
 				m_P[u].set( f, newFactorNum/newFactorDen );
 			}
 			// for each item
-			for( int i=0; i<m_WeightTable.getNumColumns(); ++i ) {
+			for( int i=0; i<m_NumItems; ++i ) {
 				float newFactorNum = 0;
 				float newFactorDen = 0.00000001f;
-				for( int u=0; u<m_WeightTable.getNumRows(); ++u ) {
+				for( int u=0; u<m_NumUsers; ++u ) {
 					newFactorNum += ratingErrors.get(u, i) * m_P[u].get(f);
 					newFactorDen += m_P[u].get(f) * m_P[u].get(f);
 				}
@@ -166,7 +169,7 @@ public class Recommender {
 	 */
 	private void deriveXAndY() {
 		// Use symmetric case m_Q = m_X as initial state -> copy
-		for( int i=0; i<m_WeightTable.getNumColumns(); ++i )
+		for( int i=0; i<m_NumItems; ++i )
 			for( int f=0; f<MAX_RANK; ++f )
 				m_X[i].set(f, m_Q[i].get(f));
 		// P_u = |R(u)|^-0.5 SUM i€R(u) [(r_uj-b_uj)*x_i+y_i]
@@ -175,33 +178,31 @@ public class Recommender {
 		// => Equation system (left side unknown, right side compute-able
 		// To get a rough estimate use "inverse Radon transformation"
 		// y_i += (P_u - |R(u)|^-0.5 SUM i€R(u) [(r_uj-b_uj)*x_i])/|R(u)|			(1)
-		for( int u=0; u<m_WeightTable.getNumRows(); ++u ) {
+		for( int u=0; u<m_NumUsers; ++u ) {
 			float norm = (float)(1.0/(m_WeightTable.getNumEntriesInRow(u)*Math.sqrt(m_WeightTable.getNumEntriesInRow(u))));
 			FloatVector p = new FloatVector(MAX_RANK);
-			for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(u); it.hasNext(); ) {
-				SparseFloatMatrix.IndexValuePair entry = it.next();	// entry.index==j, entry.value==r_uj
+			for( SparseFloatMatrix.IndexValuePair entry : m_WeightTable.getRow(u) ) {
 				float b_uj = computeBaselinePredictor(u, entry.index);
 				p.add( FloatVector.mul((entry.value-b_uj)*norm, m_X[entry.index] ) );
 			}
 			p = FloatVector.mad( -1.0f/m_WeightTable.getNumEntriesInRow(u), m_P[u], p );	// == - right side of (1)
-			for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(u); it.hasNext(); )
-				m_Y[it.next().index].sub(p);	// -= -right side   ==   += right side
+			for( SparseFloatMatrix.IndexValuePair entry : m_WeightTable.getRow(u) )
+				m_Y[entry.index].sub(p);	// -= -right side   ==   += right side
 		}
 	}
 	
 	private void initializeItemAttributes() {
 		// Initialization of the two matrices x,y means to fill them with zero
-		m_X = new FloatVector[m_WeightTable.getNumColumns()];
-		m_Y = new FloatVector[m_WeightTable.getNumColumns()];
-		m_Q = new FloatVector[m_WeightTable.getNumColumns()];
-		for( int i=0; i<m_WeightTable.getNumColumns(); ++i ) {
-			// TODO: fill in non zeros
+		m_X = new FloatVector[m_NumItems];
+		m_Y = new FloatVector[m_NumItems];
+		m_Q = new FloatVector[m_NumItems];
+		for( int i=0; i<m_NumItems; ++i ) {
 			m_X[i] = new FloatVector(MAX_RANK);
 			m_Y[i] = new FloatVector(MAX_RANK);
 			m_Q[i] = new FloatVector(MAX_RANK);
 		}
-		m_P = new FloatVector[m_WeightTable.getNumRows()];
-		for( int i=0; i<m_WeightTable.getNumRows(); ++i )
+		m_P = new FloatVector[m_NumUsers];
+		for( int i=0; i<m_NumUsers; ++i )
 			m_P[i] = new FloatVector(MAX_RANK);
 		
 		// Fill vectors with latent factors
@@ -209,8 +210,8 @@ public class Recommender {
 			computeNextFactor( i );
 		deriveXAndY();
 		
-		m_Bu = new float[m_WeightTable.getNumRows()];
-		m_Bi = new float[m_WeightTable.getNumColumns()];
+		m_Bu = new float[m_NumUsers];
+		m_Bi = new float[m_NumItems];
 	}
 	
 	/**
@@ -226,20 +227,18 @@ public class Recommender {
 	private void learnFactorizedNeighborhoodModel() {
 		initializeItemAttributes();
 		for( int i=0; i<ITERATRIONS; ++i ) {
-			for( int u=0; u<m_WeightTable.getNumRows(); ++u ) {
+			for( int u=0; u<m_NumUsers; ++u ) {
 				FloatVector sum = new FloatVector(MAX_RANK);				
 				float norm = (float)(1.0/Math.sqrt(m_WeightTable.getNumEntriesInRow(u)));	// This is |R(u)|^-0.5 in the document
 				// Compute |R(u)|^-0.5 SUM j€R(u) [(r_uj-b_uj)*x_j+y_j]
 				FloatVector p = new FloatVector(MAX_RANK);
-				for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(u); it.hasNext(); ) {
-					SparseFloatMatrix.IndexValuePair entry = it.next();	// entry.index==j, entry.value==r_uj
+				for( SparseFloatMatrix.IndexValuePair entry : m_WeightTable.getRow(u) ) {
 					float b_uj = computeBaselinePredictor(u, entry.index);
 					p.add( FloatVector.mad(entry.value-b_uj, m_X[entry.index], m_Y[entry.index] ) );
 				}
 				p.mul(norm);
 				
-				for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(u); it.hasNext(); ) {
-					SparseFloatMatrix.IndexValuePair entry = it.next();
+				for( SparseFloatMatrix.IndexValuePair entry : m_WeightTable.getRow(u) ) {
 					int j = entry.index;
 					float rh_ui = computeBaselinePredictor(u, j) + m_Q[j].dot(p);
 					float e_ui = entry.value - rh_ui;
@@ -251,8 +250,7 @@ public class Recommender {
 					m_Bi[j] += GAMMA * (e_ui - LAMBDA * m_Bi[j]);
 				}
 				
-				for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(u); it.hasNext(); ) {
-					SparseFloatMatrix.IndexValuePair entry = it.next();
+				for( SparseFloatMatrix.IndexValuePair entry : m_WeightTable.getRow(u) ) {
 					int j = entry.index;
 					m_X[j].add( FloatVector.mad(GAMMA*norm*(entry.value-computeBaselinePredictor(u, j)), sum, FloatVector.mul(-GAMMA*LAMBDA, m_X[j])) );
 					m_Y[j].add( FloatVector.mad(GAMMA*norm, sum, FloatVector.mul(-GAMMA*LAMBDA, m_Y[j])) );
@@ -271,15 +269,15 @@ public class Recommender {
 	public float getPrediction(int _user, int _item) {
 		float latentFactorPart = 0;
 		int R_U = 0;
-		for(Iterator<SparseFloatMatrix.IndexValuePair> it = m_WeightTable.getSkipIterator(_user); it.hasNext(); ) {
-			SparseFloatMatrix.IndexValuePair entry = it.next();
+		for( SparseFloatMatrix.IndexValuePair entry : m_WeightTable.getRow(_user) ) {
 			latentFactorPart += (entry.value - computeBaselinePredictor( _user, entry.index ))
 					* m_Q[entry.index].dot(m_X[entry.index]) 
 					+ m_Q[entry.index].dot(m_Y[entry.index]);
 			R_U++;
 		}	
 		
-		latentFactorPart /= Math.sqrt(R_U);
+		if(R_U > 0)
+			latentFactorPart /= Math.sqrt(R_U);
 		
 		return m_AverageRating + m_Bu[_user] + m_Bi[_item] + latentFactorPart;
 	}
