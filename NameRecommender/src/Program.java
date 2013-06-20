@@ -39,14 +39,10 @@ public class Program {
 		userData = new InstanceBase(files[0], 4, 3);
 		
 		if( files.length > 1 )
-			testUsers = new InstanceBase(files[1], 1, 1);
+			existingNames = new InstanceBase(files[1], 1, 1);
 		
-		// Load only the two names and there similarity -> 3 attributes
-		if( files.length > 2 ) {
-			itemData = new InstanceBase[files.length-1];
-			for( int i=1; i<files.length; ++i )
-				itemData[i-1] = new InstanceBase(files[i], 6, 3);
-		}
+		if( files.length > 2 )
+			testUsers = new InstanceBase(files[2], 1, 1);
 	}
 
 	/**
@@ -58,7 +54,7 @@ public class Program {
 	 */
 	private static void createRecommender() {
 		Evaluator trainer = new Evaluator();
-		recommender = trainer.train( userData, itemData );
+		recommender = trainer.train( userData, existingNames );
 	}
 	
 	/**
@@ -109,5 +105,5 @@ public class Program {
 	private static Recommender recommender;
 	private static InstanceBase userData;
 	private static InstanceBase testUsers;
-	private static InstanceBase[] itemData;
+	private static InstanceBase existingNames;
 }

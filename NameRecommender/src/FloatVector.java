@@ -132,5 +132,13 @@ public class FloatVector {
 			result += m_Rows[i] * _b.m_Rows[i];
 		return result;
 	}
+	
+	@Override
+	public String toString() {
+		String res = "[";
+		for( int i=0; i<m_Rows.length; ++i)
+			res += m_Rows[i] + " ";
+		return res + "]  ";
+	}
 
 }

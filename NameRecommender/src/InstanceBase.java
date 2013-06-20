@@ -192,7 +192,8 @@ public class InstanceBase {
 	}
 	
 	public int getMappedID( int _AttributeIdx, String _token ) {
-		return 0;
+		Integer r = m_Maps[_AttributeIdx].get(_token);
+		return r==null ? -1 : r;
 	}
 	
 	

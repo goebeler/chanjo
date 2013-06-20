@@ -6,10 +6,18 @@ public class Evaluator {
 	
 	
 
-	public Recommender train(InstanceBase _userData, InstanceBase[] _itemSimilarity) {
+	public Recommender train(InstanceBase _userData, InstanceBase _itemFilter) {
 		ParameterSet parameters = new ParameterSet();
 		boolean[] filter = new boolean[_userData.getNumInstances()];
 		Arrays.fill(filter, true);
+		// There are many user actions which typed nonsense. These should never be used.
+		for(Iterator<int[]> it = _userData.getMappedIterator(); it.hasNext(); ) {
+			int[] line = it.next();
+			String name = _userData.getString(2, line[2]);
+			if( _itemFilter.getMappedID(0, name) == -1 )
+				filter[line[2]] = false;
+		}
+
 		SparseFloatMatrix ratrings = createRatingMatrix(_userData, filter, parameters);
 		return new Recommender(ratrings);
 	}
@@ -107,7 +115,7 @@ public class Evaluator {
 	SparseFloatMatrix createRatingMatrix(InstanceBase _userData, boolean[] _filterActions, ParameterSet _param) {
 		int numItems = _userData.getNumUniqueEntries(2);
 		int numUsers = _userData.getNumUniqueEntries(0);
-		SparseFloatMatrix ratrings = new SparseFloatMatrix( numUsers, numItems );
+		SparseFloatMatrix ratings = new SparseFloatMatrix( numUsers, numItems );
 				
 		// Iterate over the training data and increase the entries for the users
 		// actions.
@@ -116,11 +124,11 @@ public class Evaluator {
 			int[] line = it.next();
 			if( _filterActions[i++] ) {
 				float newValue = _param.ActionWeight[line[1]];
-				ratrings.add(line[0], line[2], newValue);
+				ratings.add(line[0], line[2], newValue);
 			}
 		}
 		
-		return ratrings;
+		return ratings;
 	}
 
 	/**

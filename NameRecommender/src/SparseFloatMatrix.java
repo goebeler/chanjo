@@ -24,7 +24,8 @@ public class SparseFloatMatrix {
 		
 		@Override
 		public int compareTo(IndexValuePair arg0) {
-			return (int) Math.signum( value-arg0.value );
+			// Inverse order to get important things first (decreasing order)
+			return -(int) Math.signum( value-arg0.value );
 		}
 	}
 	

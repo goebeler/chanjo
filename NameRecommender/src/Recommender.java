@@ -1,10 +1,12 @@
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Iterator;
 
 
 public class Recommender {
 	
 	// Parameters to tune the algorithm
-	int MAX_RANK = 12;			// The rank how many weights should be used per item.
+	int MAX_RANK = 40;			// The rank how many weights should be used per item.
 			 					// 	Using a larger number should always increase the quality of the outcome.
 	
 	int ITERATRIONS = 15;		// Number of iterations - above 20 the quality is not increased that much.
@@ -12,7 +14,7 @@ public class Recommender {
 	float LAMBDA = 0.04f;
 	
 	float ALPHA = 25;			// Initialization shrinkage
-	float EPSILON = 0.0001f;	// Error on initialization 
+	float EPSILON = 0.001f;		// Error on initialization 
 	
 	private SparseFloatMatrix m_WeightTable;
 	private FloatVector m_X[];	// characterize items (2D array: #items * FloatVector(MAX_RANK))
@@ -136,11 +138,11 @@ public class Recommender {
 		// Solving many least square problems
 		// THE WHILE LOOP IN [NetflixKDD07] HAS AN SENSLESS CONDITION?
 		float errOld = squaredError();
-		float errNew = errOld;
+		float errNew = 0;
 		// Set something else than 0 (otherwise endless loop)
 		for( int i=0; i<m_NumItems; ++i )
 			m_Q[i].set( f, 1.0f );
-		while( errNew/errOld > 1-EPSILON ) {
+		while( errNew/errOld < 1-EPSILON ) {
 			// For each user
 			for( int u=0; u<m_NumUsers; ++u ) {
 				float newFactorNum = 0;
@@ -165,6 +167,7 @@ public class Recommender {
 			for( int i=0; i<m_NumItems; ++i )
 				m_Q[i].set( f, m_Q[i].get(f) + newFactorNum[i]/Math.max(newFactorDen[i],0.00000001f) );
 			
+			errOld = errNew; 
 			errNew = squaredError();
 		}
 	}
@@ -182,7 +185,8 @@ public class Recommender {
 		// SUM i€R(u) [y_i] = P_u - |R(u)|^-0.5 SUM i€R(u) [(r_uj-b_uj)*x_i]
 		// => Equation system (left side unknown, right side compute-able
 		// To get a rough estimate use "inverse Radon transformation"
-		// y_i += (P_u - |R(u)|^-0.5 SUM i€R(u) [(r_uj-b_uj)*x_i])/|R(u)|			(1)
+		// y_i += (P_u - |R(u)|^-0.5 SUM i€R(u) [(r_uj-b_uj)*x_i])/n			(1)
+		int[] n = new int[m_NumItems];
 		for( int u=0; u<m_NumUsers; ++u ) {
 			float norm = (float)(1.0/(m_WeightTable.getNumEntriesInRow(u)*Math.sqrt(m_WeightTable.getNumEntriesInRow(u))));
 			FloatVector p = new FloatVector(MAX_RANK);
@@ -190,10 +194,15 @@ public class Recommender {
 				float b_uj = computeBaselinePredictor(u, entry.index);
 				p.add( FloatVector.mul((entry.value-b_uj)*norm, m_X[entry.index] ) );
 			}
-			p = FloatVector.mad( -1.0f/m_WeightTable.getNumEntriesInRow(u), m_P[u], p );	// == - right side of (1)
-			for( SparseFloatMatrix.IndexValuePair entry : m_WeightTable.getRow(u) )
+			p = FloatVector.mad( -1.0f, m_P[u], p );	// == - right side of (1)
+			for( SparseFloatMatrix.IndexValuePair entry : m_WeightTable.getRow(u) ) {
+				++n[entry.index];
 				m_Y[entry.index].sub(p);	// -= -right side   ==   += right side
+			}
 		}
+		// Normalize
+		for( int i=0; i<m_NumItems; ++i )
+			m_Y[i].mul(1.0f/n[i]);
 	}
 	
 	private void initializeItemAttributes() {
@@ -231,7 +240,8 @@ public class Recommender {
 
 	private void learnFactorizedNeighborhoodModel() {
 		initializeItemAttributes();
-		for( int i=0; i<ITERATRIONS; ++i ) {
+		//Dump();
+/*		for( int i=0; i<ITERATRIONS; ++i ) {
 			for( int u=0; u<m_NumUsers; ++u ) {
 				FloatVector sum = new FloatVector(MAX_RANK);				
 				float norm = (float)(1.0/Math.sqrt(m_WeightTable.getNumEntriesInRow(u)));	// This is |R(u)|^-0.5 in the document
@@ -247,6 +257,7 @@ public class Recommender {
 					int j = entry.index;
 					float rh_ui = computeBaselinePredictor(u, j) + m_Q[j].dot(p);
 					float e_ui = entry.value - rh_ui;
+					assert(!Float.isNaN(e_ui));
 					// Accumulate information for gradient descent steps on m_X, m_Y
 					sum.add( FloatVector.mul(e_ui, m_Q[j]) );
 					// Perform gradient steps on m_Q, b_u and b_i
@@ -259,9 +270,10 @@ public class Recommender {
 					int j = entry.index;
 					m_X[j].add( FloatVector.mad(GAMMA*norm*(entry.value-computeBaselinePredictor(u, j)), sum, FloatVector.mul(-GAMMA*LAMBDA, m_X[j])) );
 					m_Y[j].add( FloatVector.mad(GAMMA*norm, sum, FloatVector.mul(-GAMMA*LAMBDA, m_Y[j])) );
-				}				
+				}
+//				Dump();
 			}
-		}
+		}*/
 	}
 	
 	
@@ -272,18 +284,47 @@ public class Recommender {
 	 * @return rating that presumably the user will give to the item.
 	 */
 	public float getPrediction(int _user, int _item) {
-		float latentFactorPart = 0;
-		int R_U = 0;
+		return m_Q[_item].dot(m_P[_user]);
+		
+/*		float latentFactorPart = 0;
 		for( SparseFloatMatrix.IndexValuePair entry : m_WeightTable.getRow(_user) ) {
 			latentFactorPart += (entry.value - computeBaselinePredictor( _user, entry.index ))
 					* m_Q[entry.index].dot(m_X[entry.index]) 
 					+ m_Q[entry.index].dot(m_Y[entry.index]);
-			R_U++;
 		}	
 		
-		if(R_U > 0)
-			latentFactorPart /= Math.sqrt(R_U);
+		assert(m_WeightTable.getNumEntriesInRow(_user) > 0);
+		latentFactorPart /= Math.sqrt(m_WeightTable.getNumEntriesInRow(_user));
 		
-		return m_AverageRating + m_Bu[_user] + m_Bi[_item] + latentFactorPart;
+		return computeBaselinePredictor( _user, _item ) + latentFactorPart;
+		*/
+	}
+	
+	
+	
+	
+	
+	private void Dump() {
+		try {
+			FileWriter file;
+			file = new FileWriter("dump.txt");
+
+			for( int i=0; i<m_NumItems; ++i ) {
+				file.write("item " + i + "\n");
+				file.write("X: " + m_X[i].toString() + "\n");
+				file.write("Y: " + m_Y[i].toString() + "\n");
+				file.write("Q: " + m_Q[i].toString() + "\n");
+				file.write("Bi: " + m_Bi[i] + "\n");
+			}
+			
+			for( int u=0; u<m_NumItems; ++u ) {
+				file.write("Bu: " + m_Bu[u] + "\n");
+				file.write("P: " + m_P[u].toString() + "\n");
+			}
+			file.close();
+
+		} catch (IOException e) {
+			System.out.println("Dump not possible.");
+		}
 	}
 }
