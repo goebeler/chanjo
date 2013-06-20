@@ -28,16 +28,21 @@ public class SparseFloatMatrix {
 		}
 	}
 	
-	// numRows Sorted linked lists
+	// numRows Sorted arrays
 	private ArrayList<IndexValuePair>[] m_Rows;
 	
 	// The number of rows is accessible by m_Rows.size().
 	// The number of columns is given by m_NumColumns;
-	private int m_NumColumns; 
+	private int m_NumColumns;
+	private int[] m_NumElementsInColumn;
+	
+	// numColumns Sorted arrays
+	//private int ArrayList<IndexValuePair>[];
 	
 	SparseFloatMatrix( int _numRows, int _numColumns ) {
 		m_NumColumns = _numColumns;
 		m_Rows = new ArrayList[_numRows];
+		m_NumElementsInColumn = new int[_numColumns];
 		for(int i=0; i<_numRows; ++i)
 			m_Rows[i] = new ArrayList<IndexValuePair>();
 	}
@@ -46,8 +51,10 @@ public class SparseFloatMatrix {
 		int index = binsearch( _row, _column );
 		if( (index < m_Rows[_row].size()) && m_Rows[_row].get(index).index == _column )
 			m_Rows[_row].get(index).value = _value;
-		else
+		else {
 			m_Rows[_row].add(index, new IndexValuePair(_column, _value));
+			++m_NumElementsInColumn[_column];
+		}
 	}
 	
 	public float get( int _row, int _column ) {
@@ -55,6 +62,17 @@ public class SparseFloatMatrix {
 		if( (index < m_Rows[_row].size()) && m_Rows[_row].get(index).index == _column )
 			return m_Rows[_row].get(index).value;
 		else return 0.0f;	// Default value
+	}
+	
+	// Increase a value by a certain value
+	public void add( int _row, int _column, float _value ) {
+		int index = binsearch( _row, _column );
+		if( (index < m_Rows[_row].size()) && m_Rows[_row].get(index).index == _column )
+			m_Rows[_row].get(index).value += _value;
+		else {
+			m_Rows[_row].add(index, new IndexValuePair(_column, _value));
+			++m_NumElementsInColumn[_column];
+		}
 	}
 	
 	public int getNumRows() {
@@ -69,6 +87,10 @@ public class SparseFloatMatrix {
 		return m_Rows[_row].size(); 
 	}
 	
+	public int getNumEntriesInColumn( int _column ) {
+		return m_NumElementsInColumn[_column]; 
+	}
+	
 	
 	/**
 	 * Binary search for a matrix-indexed element.
@@ -80,6 +102,9 @@ public class SparseFloatMatrix {
 	{
 		int l = 0;
 		int r = m_Rows[_row].size()-1;
+//		for( int i=0; i<r; ++i)
+//			System.out.print( m_Rows[_row].get(i).index + "\t " );
+//		System.out.println("[" + _row + ", " + _column + "] " + (r+1));
 		while( l<=r ) {
 			int m = (l+r)/2;
 			if( m_Rows[_row].get(m).index < _column ) {

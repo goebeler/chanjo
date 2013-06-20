@@ -1,6 +1,5 @@
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.TreeSet;
 
 
 public class Evaluator {
@@ -117,8 +116,7 @@ public class Evaluator {
 			int[] line = it.next();
 			if( _filterActions[i++] ) {
 				float newValue = _param.ActionWeight[line[1]];
-				newValue += ratrings.get(line[0], line[2]);
-				ratrings.set(line[0], line[2], newValue);
+				ratrings.add(line[0], line[2], newValue);
 			}
 		}
 		

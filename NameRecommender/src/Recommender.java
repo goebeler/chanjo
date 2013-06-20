@@ -1,4 +1,3 @@
-import java.util.ArrayList;
 import java.util.Iterator;
 
 
@@ -85,10 +84,10 @@ public class Recommender {
 	private int support( int _user, int _item )
 	{
 		// count how often an item is rated by polling.
-		int ic = 0;
-		for( int i=0; i<m_NumUsers; ++i )
-			if( m_WeightTable.get(i, _item) > 0.0f ) ++ic;
-		return Math.min(m_WeightTable.getNumEntriesInRow(_user), ic);
+		//int ic = 0;
+		//for( int i=0; i<m_NumUsers; ++i )
+		//	if( m_WeightTable.get(i, _item) > 0.0f ) ++ic;
+		return Math.min(m_WeightTable.getNumEntriesInRow(_user), m_WeightTable.getNumEntriesInColumn(_item));
 	}
 	
 	/**
@@ -130,7 +129,7 @@ public class Recommender {
 				// Shrinkage
 				float n_ui = support(u,i);
 				ratingError = n_ui*ratingError / (n_ui+ALPHA * f);
-				ratingErrors.set(u, i, entry.value);
+				ratingErrors.set(u, i, ratingError);
 			}
 		}
 		
@@ -138,27 +137,33 @@ public class Recommender {
 		// THE WHILE LOOP IN [NetflixKDD07] HAS AN SENSLESS CONDITION?
 		float errOld = squaredError();
 		float errNew = errOld;
+		// Set something else than 0 (otherwise endless loop)
+		for( int i=0; i<m_NumItems; ++i )
+			m_Q[i].set( f, 1.0f );
 		while( errNew/errOld > 1-EPSILON ) {
 			// For each user
 			for( int u=0; u<m_NumUsers; ++u ) {
 				float newFactorNum = 0;
-				float newFactorDen = 0.00000001f;
-				for( SparseFloatMatrix.IndexValuePair entry : m_WeightTable.getRow(u) ) {
-					newFactorNum += entry.value * m_Q[entry.index].get(f);
-					newFactorDen += m_Q[entry.index].get(f) * m_Q[entry.index].get(f);
+				float newFactorDen = 0;
+				for( SparseFloatMatrix.IndexValuePair entry : ratingErrors.getRow(u) ) {
+					float Q_if = m_Q[entry.index].get(f);
+					newFactorNum += entry.value * Q_if;
+					newFactorDen += Q_if * Q_if;
 				}
-				m_P[u].set( f, newFactorNum/newFactorDen );
+				m_P[u].set( f, m_P[u].get(f) + newFactorNum/Math.max(newFactorDen, 0.00000001f) );
 			}
 			// for each item
-			for( int i=0; i<m_NumItems; ++i ) {
-				float newFactorNum = 0;
-				float newFactorDen = 0.00000001f;
-				for( int u=0; u<m_NumUsers; ++u ) {
-					newFactorNum += ratingErrors.get(u, i) * m_P[u].get(f);
-					newFactorDen += m_P[u].get(f) * m_P[u].get(f);
+			float[] newFactorDen = new float[m_NumItems];	// Save numerator and denominator here to accumulate for all items in parallel
+			float[] newFactorNum = new float[m_NumItems];
+			for( int u=0; u<m_NumUsers; ++u ) {
+				for( SparseFloatMatrix.IndexValuePair entry : ratingErrors.getRow(u) ) {
+					float P_uf = m_P[u].get(f);
+					newFactorNum[entry.index] += entry.value * P_uf;
+					newFactorDen[entry.index] += P_uf * P_uf;
 				}
-				m_Q[i].set( f, newFactorNum/newFactorDen );
-			}			
+			}
+			for( int i=0; i<m_NumItems; ++i )
+				m_Q[i].set( f, m_Q[i].get(f) + newFactorNum[i]/Math.max(newFactorDen[i],0.00000001f) );
 			
 			errNew = squaredError();
 		}
@@ -192,6 +197,9 @@ public class Recommender {
 	}
 	
 	private void initializeItemAttributes() {
+		m_Bu = new float[m_NumUsers];
+		m_Bi = new float[m_NumItems];
+
 		// Initialization of the two matrices x,y means to fill them with zero
 		m_X = new FloatVector[m_NumItems];
 		m_Y = new FloatVector[m_NumItems];
@@ -209,9 +217,6 @@ public class Recommender {
 		for( int i=0; i<MAX_RANK; ++i )
 			computeNextFactor( i );
 		deriveXAndY();
-		
-		m_Bu = new float[m_NumUsers];
-		m_Bi = new float[m_NumItems];
 	}
 	
 	/**
