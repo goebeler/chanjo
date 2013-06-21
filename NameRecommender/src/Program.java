@@ -1,6 +1,8 @@
 import java.util.Iterator;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 
 
 public class Program {
@@ -39,10 +41,34 @@ public class Program {
 		userData = new InstanceBase(files[0], 4, 3);
 		
 		if( files.length > 1 )
+		{
 			existingNames = new InstanceBase(files[1], 1, 1);
+			filterData( userData, 2, existingNames );
+			System.out.println("\nPrepared data.");
+		}
 		
 		if( files.length > 2 )
 			testUsers = new InstanceBase(files[2], 1, 1);
+	}
+	
+	/**
+	 * Remove instances from the data by removing all which have a wrong value
+	 * in the specified attribute. A value is not permitted (wrong) if it is
+	 * not in the given itemList (on attribute 0 form that list).
+	 * @param _data
+	 * @param _itemList
+	 */
+	private static void filterData(InstanceBase _data, int _attribute, InstanceBase _itemList) {
+		int index = 0;
+		for(Iterator<String[]> it = _data.getIterator(); it.hasNext(); ) {
+			String[] line = it.next();
+			if( _itemList.getMappedID(0, line[_attribute]) == -1 )
+			{
+				it = _data.remove(index);
+				//it.remove();
+			} else
+				++index;
+		}
 	}
 
 	/**
@@ -76,11 +102,10 @@ public class Program {
 	private static void outputResults() {
 		// Create the file for the challenge
 		try {
-			FileWriter file;
-			file = new FileWriter("recommendations_for_test_users.txt");
-
+			OutputStreamWriter file = new OutputStreamWriter(new FileOutputStream("recommendations_for_test_users.txt"), "UTF-8");
 		
-			System.out.println( "\n\nCapturing results\n");
+			System.out.println( "\n\nCapturing results");
+			System.out.println( "Writing recommendations_for_test_users.txt: " + file.getEncoding());
 			for(Iterator<int[]> it = testUsers.getMappedIterator(); it.hasNext(); ) {
 				int id = it.next()[0];
 				// Write user (original) id first
@@ -90,10 +115,8 @@ public class Program {
 					// Write names in a tab separated list
 					String name = userData.getString(2, items[i]);
 					file.write("\t" + name);
-		//			System.out.print(name + ", ");
 				}
 				file.write("\n");
-		//		System.out.println();
 			}
 			file.close();
 

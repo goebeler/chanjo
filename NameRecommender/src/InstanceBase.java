@@ -1,13 +1,14 @@
-
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.HashMap;
+import java.util.ListIterator;
 
 
 /**
@@ -72,7 +73,7 @@ public class InstanceBase {
 
         // load data from file
         try {
-            BufferedReader file = new BufferedReader(new FileReader(_DataFile));
+            BufferedReader file = new BufferedReader(new InputStreamReader(new FileInputStream(_DataFile),"UTF-8"));
             String line;
 			// Unknown number of attributes per line
             int NumAttributesPerLine = -1;
@@ -226,5 +227,12 @@ public class InstanceBase {
 			}
 			m_MappedData.add(newDatum);
 		}
+	}
+	
+	
+	public Iterator<String[]> remove(int _index) {
+		m_Data.remove(_index);
+		m_MappedData.remove(_index);
+		return m_Data.listIterator(_index);
 	}
 }
