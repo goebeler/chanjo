@@ -19,7 +19,6 @@ import java.util.ListIterator;
  * Each datum has to have the same number of tokens, the entry is
  * skipped if not.
  *
- * TODO: Use hashing for performanter search.
  */
 public class InstanceBase {
 	private int m_NumAttributes;
@@ -130,7 +129,7 @@ public class InstanceBase {
      * elements only the first n are checked for a match and the last ones are ignored.
      * @return Number of instances matching the given "hypotheses".
      */
-    public int countInstances(String[] _aPattern) {
+    /*public int countInstances(String[] _aPattern) {
         int iCounter = 0;
         // check line after line
         for(int i=0;i<getNumInstances();++i) {
@@ -145,7 +144,7 @@ public class InstanceBase {
             if(bMatch) ++iCounter;
         }
         return iCounter;
-    }
+    }*/
 
     /**
      * 
@@ -159,7 +158,7 @@ public class InstanceBase {
      * @return A list instances matching the given "hypotheses". Even if the number of
      * given patterns is less than getNumAttributes the whole data set is returned.
      */
-	public ArrayList<String[]> getInstances(String[] _aPattern) {
+	/*public ArrayList<String[]> getInstances(String[] _aPattern) {
 		ArrayList<String[]> result = new ArrayList<String[]>();
         // check line for line
         for(int i=0;i<getNumInstances();++i) {
@@ -174,7 +173,7 @@ public class InstanceBase {
             if(bMatch) result.add(m_Data.get(i));
         }
         return result;
-    }
+    }*/
 	
 	public int getNumUniqueEntries( int _AttributeIdx ) {
 		return m_NumEntriesPerAttribute[_AttributeIdx];

@@ -119,6 +119,7 @@ public class Program {
 				file.write("\n");
 			}
 			file.close();
+			System.out.println( "Finished successfuly");
 
 		} catch (IOException e) {
 			System.out.println("Could not write results to a local file.");

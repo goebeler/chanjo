@@ -12,7 +12,7 @@ public class Evaluator {
 		Arrays.fill(filter, true);
 
 		SparseFloatMatrix ratrings = createRatingMatrix(_userData, filter, parameters);
-		return new Recommender(ratrings);
+		return new Recommender(ratrings, parameters);
 	}
 	
 	/**
@@ -116,7 +116,7 @@ public class Evaluator {
 		for(Iterator<int[]> it = _userData.getMappedIterator(); it.hasNext(); ) {
 			int[] line = it.next();
 			if( _filterActions[i++] ) {
-				float newValue = _param.ActionWeight[line[1]];
+				float newValue = _param.ACTION_WEIGHT[line[1]];
 				ratings.add(line[0], line[2], newValue);
 			}
 		}
@@ -149,18 +149,18 @@ public class Evaluator {
 			for(Iterator<int[]> it = _userData.getMappedIterator(); it.hasNext(); ) {
 				int[] line = it.next();
 				if( folds[i++] == fold) {
-					float newValue = parameters.ActionWeight[line[1]];
+					float newValue = parameters.ACTION_WEIGHT[line[1]];
 					newValue += ratingsTest.get(line[0], line[2]);
 					ratingsTest.set(line[0], line[2], newValue);
 				}
 				else{
-					float newValue = parameters.ActionWeight[line[1]];
+					float newValue = parameters.ACTION_WEIGHT[line[1]];
 					newValue += ratingsTrain.get(line[0], line[2]);
 					ratingsTrain.set(line[0], line[2], newValue);
 				}
 			}
 			
-			Recommender recommender = new Recommender(ratingsTrain);
+			Recommender recommender = new Recommender(ratingsTrain, parameters);
 			rmse += rmseCrossValidation(recommender, ratingsTest);
 		}
 		
