@@ -24,7 +24,8 @@ public class Program {
 		}
 		
 		loadData(args);
-		createRecommender();
+		//createRecommender();
+		System.out.println("RMSE = " + crossValidate(10));
 		if( testUsers != null )
 			outputResults();
 	}
@@ -110,8 +111,8 @@ public class Program {
 				int id = it.next()[0];
 				// Write user (original) id first
 				file.write(userData.getString(0, id));
-				int[] items = recommender.getItemListForUser(id, 20);
-				for( int i=0; i<20; ++i ) {
+				int[] items = recommender.getItemListForUser(id, 1000);
+				for( int i=0; i<1000; ++i ) {
 					// Write names in a tab separated list
 					String name = userData.getString(2, items[i]);
 					file.write("\t" + name);

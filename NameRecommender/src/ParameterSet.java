@@ -8,12 +8,12 @@ public class ParameterSet {
 	 * specific name.
 	 * Each action can have an other weight where the order is not really known.
 	 */
-	float[] ACTION_WEIGHT = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f};
+	float[] ACTION_WEIGHT = {0.05f, 0.2f, 0.05f, 0.1f, 0.6f};
 	
 	/** The rank how many weights should be used per item/user vector.
 	 * Using a larger number should always increase the quality of the outcome.
 	 */
-	int MAX_RANK = 20;
+	int MAX_RANK = 40;
 	
 	/** The shrinkage controls how fast the MAX_RANK factors are decreased (damped)
 	 */
