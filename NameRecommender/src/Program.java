@@ -27,7 +27,7 @@ public class Program {
 		//createRecommender();
 		System.out.println("RMSE = " + crossValidate(10));
 		if( testUsers != null )
-			outputResults();
+			outputResults(1000);
 	}
 	
 	/**
@@ -100,7 +100,7 @@ public class Program {
 	 * This method uses the current recommender to create the recommendation
 	 * lists. createRecommender must be called before!
 	 */
-	private static void outputResults() {
+	private static void outputResults(int numRecommendations) {
 		// Create the file for the challenge
 		try {
 			OutputStreamWriter file = new OutputStreamWriter(new FileOutputStream("recommendations_for_test_users.txt"), "UTF-8");
@@ -111,8 +111,8 @@ public class Program {
 				int id = it.next()[0];
 				// Write user (original) id first
 				file.write(userData.getString(0, id));
-				int[] items = recommender.getItemListForUser(id, 1000);
-				for( int i=0; i<1000; ++i ) {
+				int[] items = recommender.getItemListForUser(id, numRecommendations);
+				for( int i=0; i<items.length; ++i ) {
 					// Write names in a tab separated list
 					String name = userData.getString(2, items[i]);
 					file.write("\t" + name);

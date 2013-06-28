@@ -7,6 +7,8 @@ public class ParameterSet {
 	/** Each action of a user is increasing its interest value of the
 	 * specific name.
 	 * Each action can have an other weight where the order is not really known.
+	 * 
+	 * The order (for the current data) is: link-search, enter_search, link_category_search, name_details, add_favorite
 	 */
 	float[] ACTION_WEIGHT = {0.05f, 0.2f, 0.05f, 0.1f, 0.6f};
 	
@@ -17,10 +19,10 @@ public class ParameterSet {
 	
 	/** The shrinkage controls how fast the MAX_RANK factors are decreased (damped)
 	 */
-	float SHRINKAGE = 25;
+	float SHRINKAGE = 3.9f;
 	
 	/** A threshold how long to compute until convergence. If the change since
 	 * the last step is less than EPSILON stop.
 	 */
-	float EPSILON = 0.001f;
+	float EPSILON = 0.0001f;
 }
