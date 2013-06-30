@@ -18,14 +18,20 @@ public class Program {
 	 */
 	public static void main(String[] args) {
 		
-		if( args.length < 1 ) {
-			System.out.println("At least the user activity data has to be given.");
+		if( args.length < 2 ) {
+			System.out.println("At least type of the task and the user activity data has to be given.");
 			return;
 		}
 		
+		String task = args[0];
 		loadData(args);
-		//createRecommender();
-		System.out.println("RMSE = " + crossValidate(10));
+		if( task.equalsIgnoreCase("1") ) {
+			createRecommender();
+		}
+		else{		
+			System.out.println("RMSE = " + crossValidate(10));
+		}
+		
 		if( testUsers != null )
 			outputResults(1000);
 	}
@@ -39,17 +45,17 @@ public class Program {
 	 */
 	private static void loadData(String[] files) {
 		// Load without time stamp
-		userData = new InstanceBase(files[0], 4, 3);
+		userData = new InstanceBase(files[1], 4, 3);
 		
-		if( files.length > 1 )
+		if( files.length > 2 )
 		{
-			existingNames = new InstanceBase(files[1], 1, 1);
+			existingNames = new InstanceBase(files[2], 1, 1);
 			filterData( userData, 2, existingNames );
 			System.out.println("\nPrepared data.");
 		}
 		
-		if( files.length > 2 )
-			testUsers = new InstanceBase(files[2], 1, 1);
+		if( files.length > 3 )
+			testUsers = new InstanceBase(files[3], 1, 1);
 	}
 	
 	/**
@@ -92,6 +98,7 @@ public class Program {
 	 */
 	private static float crossValidate(int _numberOfFolds) {
 		Evaluator ev = new Evaluator();
+		System.out.println("cross validation started");
 		return ev.crossValidate( userData, _numberOfFolds);
 	}
 	
