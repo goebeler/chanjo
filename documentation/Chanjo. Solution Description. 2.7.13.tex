@@ -9,6 +9,8 @@
 \usepackage{amsmath}
 \usepackage{here}
 \usepackage{epstopdf}
+\usepackage{algorithm}
+\usepackage{algorithmic}
 
 %opening
 \title{Advanced topics in Machine Learning. \\ Concept of the solution of the programming assignment}
@@ -26,7 +28,7 @@ The challenge’s objective is easily described: Create a recommender system for
 We received data about user activities from nameling.net website. Data consists of 515,848 activities made by 60,922 users. Our idea was to assign to each activity corresponding rating. The most explicit user expression will be ranked higher. We thought that \textit{ENTER SEARCH} will receive the highest rank, as  the evaluation is restricted only to this activity and all other activities are biased towards the lists of names which were displayed. However, using our evaluation measure we obtained better results when the highest rating was assigned to \textit{ADD FAVORITE} action. 
 
 
-So, afterwards we obtained a table where for each name we will have some user rating or nothing. It is not possible to store the whole table on a usual laptop RAM, as the number of user names is too high. Moreover, the table is sparse as we have less than 10 activities in average pro user. So, we stored only existing ratings for each user with the index number of the corresponding name.
+After initialization we obtained a matrix which contains for each user-name-pair either the user's rating for the name or nothing. It is not possible to store the whole matrix (12 GB) on a usual laptop RAM, as the number of user names is too high. Moreover, the matrix is sparse as we have less than 10 activities in average pro user. So, we stored only existing ratings for each user with the index number of the corresponding name.
 
 The recommendation approach, that we are going to use, is based on a model (\ref{1}) described in a paper \cite{2}. 
 
@@ -37,11 +39,43 @@ The recommendation approach, that we are going to use, is based on a model (\ref
 \begin{center} For a given item i, the elements of $ q_i $ measure the extent \\ to which the item possesses those factors, positive or negative. \end{center}
 \begin{center} The elements of $ p_u $ measure attitude of the user \\ to latent factors. \end{center}
 
-Factors mentioned above obtain using singular value decomposition(SVD) of an initial matix, as SVD maps both users and items to a joint latent factor space of dimensionality $ f $. As it stated in book \cite{1} the latent space tries to explain ratings by characterizing both products and users on factors automatically inferred from user feedback. Usual SVD algorithms are not easily applicanle in our case, as we have a really huge sparse matrix. So, we are going to use algorithm described in \cite{2} in chapter 4.3. 
+Factors mentioned above are obtained by using singular value decomposition(SVD) of the initial matrix, as SVD maps both users and items to a joint latent factor space of dimensionality $ f $. As it stated in book \cite{1} the latent space tries to explain ratings by characterizing both products and users on factors automatically inferred from user feedback. Usual SVD algorithms are not easily applicable in our case, as we have a really huge sparse matrix. So, we are going to use the algorithm described in \cite{2} in chapter 4.3. 
 
 \subsection{Learning}
 
-The values $b_u$ and $b_i$ has to be learned after the initialization. During that learning $x_j$ and $y_j$ will be adapted too.
+The values $p_u$ and $q_i$ have to be learned after the initialization. The following pseudo code describes the algorithm described in \cite{2} in chapter 4.3.
+
+\begin{algorithm}
+\caption{LearnNextLatentFactor(f)}
+\begin{algorithmic}
+\FORALL { $r_{ui} \in RatingMatrix$ }
+\STATE $support \leftarrow min(\#UserRatings, \#ItemRatings)$
+\STATE $error_{ui} \leftarrow support \cdot (r_{ui} - p_u^T \cdot q_i) / (support + SHRINKAGE \cdot f)$
+\ENDFOR
+\STATE $oldError \leftarrow \sum_{r_{ui} \in RatingMatrix} (r_{ui} - p_u^T \cdot q_i)^2 $
+\STATE $newError \leftarrow 0$
+\FORALL {$q_i$}
+\STATE $q_i[f] \leftarrow 1$
+\ENDFOR
+\WHILE {$newError/oldError < 1-EPSILON$}
+\STATE $p_u[f] \leftarrow p_u[f]+\frac{\sum_{i \in Ratings(u)} r_{ui} \cdot q_i[f]}{\sum_{i \in Ratings(u)} q_i[f]^2}$
+\STATE $q_i[f] \leftarrow q_i[f]+\frac{\sum_{u \in Rated(i)} r_{ui} \cdot p_u[f]}{\sum_{u \in Rated(i)} p_u[f]^2}$
+\STATE $oldError \leftarrow newError$
+\STATE $newError \leftarrow \sum_{r_{ui} \in RatingMatrix} (r_{ui} - p_u^T \cdot q_i)^2$
+\ENDWHILE
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}
+\caption{Learn()}
+\begin{algorithmic}
+\STATE $p_u \leftarrow 0$
+\STATE $q_i \leftarrow 0$
+\FOR {$f \in [0,NUM\_FACTORS]$}
+\STATE LearnNextLatentFactor(f)
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}
 
 
 
@@ -51,16 +85,22 @@ The quality of the result was measured by the root mean squared error (RMSE) (\r
  
 \begin{equation} \label{2} \sqrt{ \sum_{(u,i) \in TestSet} (r_{u i} - \hat{r}_{u i} ) ^2 / \left| TestSet \right| } \end{equation}
 
-We have 8 parameters that could be tuned. These are 5 initial ratings for each action,  the number of latent factors $ f $, shrinkage and threshold parameters. For that we cross validated our model with different values of these parameters and afterwards have chosen one with the best result. Cross validation was performed on user actions, not on users.
+We have 8 parameters that could be tuned. These are 5 initial ratings for each action, the number of latent factors $ f $, the shrinkage and the epsilon parameter. For that we cross validated our model with different values of these parameters and afterwards have chosen the one with the best result. To build test sets for the cross validation some actions of some users were removed before learning. Due to the other actions the user is still known to the learner and could be characterized.
 
 \section{Result}
-Recommendation model with the parameters listed below has the smallest RMSE = 0.392.
+The parameters listed below have had the smallest RMSE = 0.392 during our test phase.
 
-Ratings:
-
-\textit{LINK SEARCH} = 0.05, \textit{ENTER SEARCH} = 0.2, \textit{LINK CATEGORY SEARCH} = 0.05, \textit{NAME DETAILS} = 0.1, \textit{ADD FAVORITE} = 0.6.
-
-Number of the latent factors = 40, Shrinkage = 3.9, threshold = 0.0001.
+Ratings:\\
+\begin{align*}
+LINK SEARCH &= 0.05\\
+ENTER SEARCH &= 0.2\\
+LINK CATEGORY SEARCH &= 0.05\\
+NAME DETAILS &= 0.1\\
+ADD FAVORITE &= 0.6\\
+NUM_FACTORS &= 40\\
+SHRINKAGE &= 3.9\\
+EPSILON &= 0.0001
+\end{align*}
 
 
 
